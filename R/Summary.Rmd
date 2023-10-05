@@ -1,3 +1,9 @@
+---
+title: "Summary"
+author: 'Moritz Burger & Noémie Wellinger'
+date: "`r Sys.Date()`"
+output: html_document
+---
 
 ```{r libraries, include=F}
 library(tidyverse)
@@ -5,20 +11,18 @@ library(dplyr)
 library(lubridate)
 ```
 
-```{r}
+```{r read, include = F}
 data<-read_csv("../data/Rawdata_T_2023_MJJAS.csv")
 
 data <- data |>
   mutate(Timeshift = Time - dhours(7)) #07 ist das neue 00
 ```
+
 # Indicators using Nighttime Temperatures (21:00 - 07:00):
 Average Tmin per Logger, Tropical Nights, Gfrörli Nights
-```{r}
+```{r ind1, include = F}
 data_night <- data |> 
   filter(hour(Timeshift) >= 14)
-
-data_day <- data |> 
-  filter(hour(Timeshift) < 14)
 
 Tmin_night <- data_night |>
   group_by(month=month(Timeshift), day=day(Timeshift)) |>
@@ -74,12 +78,12 @@ Tmean_night_avg <- Tmean_night |>
 
 # Urban heat island
 # Reference: Zollikofen Referenz 3m
-UHI_mean <- Tmean_night |>
+UHI_night <- Tmean_night |>
   mutate_all(~ .-`Zollikofen 3m`) |>
   select(-month, -day)
-UHI_mean[sapply(UHI_mean, is.nan)] <- NA
+UHI_night[sapply(UHI_night, is.nan)] <- NA
 
-UHI_mean_avg <- UHI_mean |>
+UHI_night_avg <- UHI_night |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
   select(-Time, -Timeshift, -month, -year) |>
@@ -106,10 +110,23 @@ Tmean_day_avg <- Tmean_day |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
   select(-Time, -Timeshift, -month, -day, -year)
+
+# Urban heat island
+# Reference: Zollikofen Referenz 3m
+UHI_day <- Tmean_day |>
+  mutate_all(~ .-`Zollikofen 3m`) |>
+  select(-month, -day)
+UHI_day[sapply(UHI_day, is.nan)] <- NA
+
+UHI_day_avg <- UHI_day |>
+  group_by(year = year(Timeshift)) |>
+  summarise_all(~ mean(., na.rm = TRUE)) |>
+  select(-Time, -Timeshift, -month, -year) |>
+  head(1) #select the first row, since there is a second row with NaN
 ```
 
-# Indicators using all measurements
-```{r}
+# Indicators using measurements of entire day
+```{r ind_3, include = F}
 # Overall mean temperature
 Tmean <- data |>
   group_by(month=month(Timeshift), day=day(Timeshift)) |>
@@ -136,6 +153,18 @@ Tmax_avg <- Tmax |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
   select(-Time, -Timeshift, -month, -day, -year)
 
+# Urban heat island
+# Reference: Zollikofen Referenz 3m
+UHI <- Tmean |>
+  mutate_all(~ .-`Zollikofen 3m`) |>
+  select(-month, -day)
+UHI[sapply(UHI, is.nan)] <- NA
+
+UHI_avg <- UHI |>
+  group_by(year = year(Timeshift)) |>
+  summarise_all(~ mean(., na.rm = TRUE)) |>
+  select(-Time, -Timeshift, -month, -year) |>
+  head(1) #select the first row, since there is a second row with NaN
 
 # Summer days
 Summer_days <- Tmax |>
@@ -158,7 +187,31 @@ VHot_days <- Tmax |>
   summarise_all(~ sum(. >= 35 & . <= 50, na.rm = TRUE)) |>
   select(-year, -month)
 
+
+# TODO
+# valid days
+# question also valid nights, and daytime ?
+# when is a day valid? does it have to be completely without NA or not more than 20% NA or so?
 ```
+# Valid days (DOESN'T WORK YET)
+```{r}
+# Set threshold for amount of NA data that is allowed
+threshold <- 0.2
+
+# Calculate the number of NA values per day
+NA_measurements <- data |>
+  group_by(date(Time)) |>
+  summarize_all(~ sum(is.na(.)))
+
+# Calculate the total number of days and valid days (<= 20% NA)
+total_days <- nrow(NA_measurements)
+valid_days <- valid_days |>
+  summarize_all(~ sum(. <= threshold * 144)) # 144 measurements per day (every 10 mins)
+
+# Calculate the percentage of valid days
+percentage_valid_days <- (valid_days / total_days) * 100
+```
+
 # Final summary table
 ```{r transpose, include = F}
 # Transpose all the indicator tables
@@ -167,7 +220,9 @@ Tmax_avg <- as.data.frame(t(head(Tmax_avg))) |> rename(Tmax = V1) |> rownames_to
 Tmean_night_avg <- as.data.frame(t(head(Tmean_night_avg))) |> rename(Tmean_night = V1) |> rownames_to_column(var = "Log_name")
 Tmin_night_avg <- as.data.frame(t(head(Tmin_night_avg))) |> rename(Tmin_night = V1) |> rownames_to_column(var = "Log_name")
 Tmean_day_avg <- as.data.frame(t(head(Tmean_day_avg))) |> rename(Tmean_day = V1) |> rownames_to_column(var = "Log_name")
-UHI_mean_avg <- as.data.frame(t(head(UHI_mean_avg))) |> rename(UHI_mean = V1) |> rownames_to_column(var = "Log_name")
+UHI_avg <- as.data.frame(t(head(UHI_avg))) |> rename(UHI = V1) |> rownames_to_column(var = "Log_name")
+UHI_day_avg <- as.data.frame(t(head(UHI_day_avg))) |> rename(UHI_day = V1) |> rownames_to_column(var = "Log_name")
+UHI_night_avg <- as.data.frame(t(head(UHI_night_avg))) |> rename(UHI_night = V1) |> rownames_to_column(var = "Log_name")
 Tropical_nights <- as.data.frame(t(head(Tropical_nights))) |> rename(Tropical_nights = V1) |> rownames_to_column(var = "Log_name")
 Gfroerli_nights <- as.data.frame(t(head(Gfroerli_nights))) |> rename(Gfroerli_nights = V1) |> rownames_to_column(var = "Log_name")
 Summer_days <- as.data.frame(t(head(Summer_days))) |> rename(Summer_days = V1) |> rownames_to_column(var = "Log_name")
@@ -179,16 +234,15 @@ VHot_days <- as.data.frame(t(head(VHot_days))) |> rename(VHot_days = V1) |> rown
 
 ```{r}
 # Join the transposed tables
-indicators <- list(Tmean_avg, Tmax_avg, Tmean_night_avg, Tmin_night_avg, Tmean_day_avg, UHI_mean_avg, Tropical_nights, Gfroerli_nights, Summer_days, Hot_days, VHot_days)
+indicators <- list(Tmean_avg, Tmax_avg, Tmean_night_avg, Tmin_night_avg, Tmean_day_avg, UHI_avg, UHI_day_avg, UHI_night_avg, Tropical_nights, Gfroerli_nights, Summer_days, Hot_days, VHot_days)
 
 Summary <- plyr::join_all(indicators, by = "Log_name", type = "full")
 ```
 
 
-Output<-mutate(Output, UHI_all=Tmean_avg_all-20.61285)
-Output<-mutate(Output, UHI_night=Tmean_avg_Night-16.68675)
-Output<-mutate(Output, UHI_day=Tmean_avg_Day-22.57926)
 
-Output<-select(Output, Logs, Tmean_avg_all, UHI_all, Tmean_avg_Night, UHI_night, Tmean_avg_Day, UHI_day, Tmin_avg, Tmax_avg_all, TN, GN, SD, HD, vHD)
+```{r export, includ = F}
+write_csv(Summary, ("../data/Summary_T_2023_MJJAS.csv"))
+```
 
-write.table(Output, "Summary_2022_22.csv", sep=";")
+
