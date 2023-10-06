@@ -5,6 +5,15 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
+This Rmd script calculates important Urban Climate variables for each logger. These are first calculated for each day of the measure, and finally summarized (averages) in a big summary table.
+Note that the time of day over they are calculated differs: whole day (00-24), daytime (6-22) and night (either 22-6 or 21-7).
+
+** NOT SURE HOW EXACTLY WE SHOULD PROCEED FOR THE VALID DAYS. THIS IS NOÉMIE'S SUGGESTION: **
+To contextualize the number of hot day for example, we also check the amount of valid days, as in no more than 20% NA. If there are more than 20% NA, all the data of this day is deleted.
+** 20% OF COURSE COULD ALSO BE 10%. ALSO, DOES IT MAKE SENSE FOR ALL INDICATORS TO USE THE SAME THRESHOLD? **
+
+
+
 ```{r libraries, include=F}
 library(tidyverse)
 library(dplyr)
@@ -14,6 +23,7 @@ library(lubridate)
 ```{r read, include = F}
 data<-read_csv("../data/Rawdata_T_2023_MJJAS.csv")
 
+# shift the hours, so that the night is not cut in half
 data <- data |>
   mutate(Timeshift = Time - dhours(7)) #07 ist das neue 00
 ```
@@ -96,18 +106,18 @@ UHI_night_avg <- UHI_night |>
 Mean daytime temperature
 ```{r}
 data_day <- data |> 
-  filter(hour(Timeshift) < 15 | hour(Timeshift) == 23)
+  filter(hour(Time) >= 6, hour(Time) <= 22) # use time again, to avoid breaking the day apart
 
 # mean day temperature
 Tmean_day <- data_day |>
-  group_by(month=month(Timeshift), day=day(Timeshift)) |>
+  group_by(month=month(Time), day=day(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE))
 
 Tmean_day[sapply(Tmean_day, is.infinite)] <- NA
 Tmean_day[sapply(Tmean_day, is.nan)] <- NA
 
 Tmean_day_avg <- Tmean_day |>
-  group_by(year = year(Timeshift)) |>
+  group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
   select(-Time, -Timeshift, -month, -day, -year)
 
@@ -119,7 +129,7 @@ UHI_day <- Tmean_day |>
 UHI_day[sapply(UHI_day, is.nan)] <- NA
 
 UHI_day_avg <- UHI_day |>
-  group_by(year = year(Timeshift)) |>
+  group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
   select(-Time, -Timeshift, -month, -year) |>
   head(1) #select the first row, since there is a second row with NaN
@@ -129,7 +139,7 @@ UHI_day_avg <- UHI_day |>
 ```{r ind_3, include = F}
 # Overall mean temperature
 Tmean <- data |>
-  group_by(month=month(Timeshift), day=day(Timeshift)) |>
+  group_by(month=month(Time), day=day(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE))
 
 Tmean[sapply(Tmean, is.infinite)] <- NA
@@ -142,14 +152,14 @@ Tmean_avg <- Tmean |>
 
 # Overall max temperature
 Tmax <- data |>
-  group_by(month=month(Timeshift), day=day(Timeshift)) |>
+  group_by(month=month(Time), day=day(Time)) |>
   summarise_all(~ max(., na.rm = TRUE))
 
 Tmax[sapply(Tmax, is.infinite)] <- NA
 Tmax[sapply(Tmax, is.nan)] <- NA
 
 Tmax_avg <- Tmax |>
-  group_by(year = year(Timeshift)) |>
+  group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
   select(-Time, -Timeshift, -month, -day, -year)
 
@@ -161,29 +171,29 @@ UHI <- Tmean |>
 UHI[sapply(UHI, is.nan)] <- NA
 
 UHI_avg <- UHI |>
-  group_by(year = year(Timeshift)) |>
+  group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
   select(-Time, -Timeshift, -month, -year) |>
   head(1) #select the first row, since there is a second row with NaN
 
 # Summer days
 Summer_days <- Tmax |>
-  select(-Time, -month, -day) |>
-  group_by(year = year(Timeshift)) |>
+  select(-Timeshift, -month, -day) |>
+  group_by(year = year(Time)) |>
   summarise_all(~ sum(. >= 25 & . <= 50, na.rm = TRUE)) |>
   select(-year, -month)
 
 # Hot days
 Hot_days <- Tmax |>
-  select(-Time, -month, -day) |>
-  group_by(year = year(Timeshift)) |>
+  select(-Timeshift, -month, -day) |>
+  group_by(year = year(Time)) |>
   summarise_all(~ sum(. >= 30 & . <= 50, na.rm = TRUE)) |>
   select(-year, -month)
 
 # Very Hot days
 VHot_days <- Tmax |>
-  select(-Time, -month, -day) |>
-  group_by(year = year(Timeshift)) |>
+  select(-Timeshift, -month, -day) |>
+  group_by(year = year(Time)) |>
   summarise_all(~ sum(. >= 35 & . <= 50, na.rm = TRUE)) |>
   select(-year, -month)
 
