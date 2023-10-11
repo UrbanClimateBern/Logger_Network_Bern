@@ -21,7 +21,7 @@ library(lubridate)
 ```
 
 ```{r read, include = F}
-data<-read_csv("../data/Rawdata_T_2023_MJJAS.csv")
+data<-read_csv("../data/Analysis 2023/Rawdata_T_2023_MJJAS.csv")
 
 # shift the hours, so that the night is not cut in half
 data <- data |>
@@ -30,7 +30,7 @@ data <- data |>
 
 # Indicators using Nighttime Temperatures (21:00 - 07:00):
 Average Tmin per Logger, Tropical Nights, Gfrörli Nights
-```{r ind1, include = F}
+```{r indicators_0, include = F}
 data_night <- data |> 
   filter(hour(Timeshift) >= 14)
 
@@ -69,7 +69,7 @@ Tropical_Nights_20<-data.frame(Logs,Tmin_avg, TN, GN)
 
 # Indicators using Nighttime Temperatures (22:00 - 06:00)
 Mean night temperature, 
-```{r}
+```{r indicators_1, include=F}
 data_night2 <- data |> 
   filter(hour(Timeshift) >= 15, hour(Timeshift)<23)
 
@@ -104,7 +104,7 @@ UHI_night_avg <- UHI_night |>
 
 # Indicators using daytime Temperatures (06:00 - 22:00)
 Mean daytime temperature
-```{r}
+```{r indicators_2, include=F}
 data_day <- data |> 
   filter(hour(Time) >= 6, hour(Time) <= 22) # use time again, to avoid breaking the day apart
 
@@ -136,7 +136,7 @@ UHI_day_avg <- UHI_day |>
 ```
 
 # Indicators using measurements of entire day
-```{r ind_3, include = F}
+```{r indicators_3, include = F}
 # Overall mean temperature
 Tmean <- data |>
   group_by(month=month(Time), day=day(Time)) |>
@@ -196,31 +196,61 @@ VHot_days <- Tmax |>
   group_by(year = year(Time)) |>
   summarise_all(~ sum(. >= 35 & . <= 50, na.rm = TRUE)) |>
   select(-year, -month)
+```
 
-
+# Valid days (DOESN'T WORK YET)
+```{r valid_days, include = F}
 # TODO
 # valid days
 # question also valid nights, and daytime ?
 # when is a day valid? does it have to be completely without NA or not more than 20% NA or so?
-```
-# Valid days (DOESN'T WORK YET)
-```{r}
-# Set threshold for amount of NA data that is allowed
+
+
+# Set threshold for maximum amount of NA data that is allowed per day (e.g. 0.2 = 20%)
 threshold <- 0.2
 
 # Calculate the number of NA values per day
-NA_measurements <- data |>
-  group_by(date(Time)) |>
-  summarize_all(~ sum(is.na(.)))
+NA_per_day <- data |>
+  group_by(date = date(Time)) |>
+  summarize_all(~ sum(is.na(.))) |>
+  select(-Time)
 
-# Calculate the total number of days and valid days (<= 20% NA)
-total_days <- nrow(NA_measurements)
-valid_days <- valid_days |>
-  summarize_all(~ sum(. <= threshold * 144)) # 144 measurements per day (every 10 mins)
+# Flag the valid (1) and invalid (0) days
+valid_days <- NA_per_day |>
+  mutate(across(-date, ~ifelse(. > 144*threshold, 0, 1))) # 144 measurements per day (every 10 mins)
 
-# Calculate the percentage of valid days
-percentage_valid_days <- (valid_days / total_days) * 100
+# Calculate the total number of days and valid days
+total_valid_days <- valid_days |>
+  select(-date) |>
+  summarise_all(~ sum(., na.rm = TRUE)) 
 ```
+
+# OPTIONAL !
+Set the cells of an entire day to NA if it was an invalid day
+```{r}
+# Identify rows to set to NA
+rows_to_set_na <- your_dataframe %>%
+  filter(your_dataframe == 0) %>%
+  select(date)
+
+# Update the 'hourly' dataframe
+hourly <- hourly %>%
+  left_join(rows_to_set_na, by = "date") %>%
+  mutate(across(-date, ~ifelse(date.x == date.y & your_dataframe == 0, NA, .)))
+
+# Cleanup columns if needed (e.g., remove date.x, date.y)
+hourly <- hourly %>%
+  select(-date.x, -date.y)
+
+### TODO doesn't work yet!
+data_valid <- data |>
+  mutate(date = date(Time)) |>
+  left_join(valid_days, by = "date") |>
+  select(-Time) |>
+  mutate(across(-date, ~ifelse(.y == 0, NA, .x))) |>
+  select(-.y)  # Remove the columns from your_dataframe
+```
+
 
 # Final summary table
 ```{r transpose, include = F}
@@ -242,17 +272,33 @@ VHot_days <- as.data.frame(t(head(VHot_days))) |> rename(VHot_days = V1) |> rown
 # Keep in mind this overwrites the original tables, so if you run this chunk again, it transposes back and probably causes an error
 ```
 
-```{r}
+```{r join, include=F}
 # Join the transposed tables
 indicators <- list(Tmean_avg, Tmax_avg, Tmean_night_avg, Tmin_night_avg, Tmean_day_avg, UHI_avg, UHI_day_avg, UHI_night_avg, Tropical_nights, Gfroerli_nights, Summer_days, Hot_days, VHot_days)
 
 Summary <- plyr::join_all(indicators, by = "Log_name", type = "full")
 ```
 
+Add the coordinates from the metadata and format them correctly. Important for mapping later on.
+```{r coordinates, include = F}
+# Add Longitude and Latitude values
+meta <- read_csv2("../data/metadata_network_2023.csv") |>
+  select(Log_NR, STANDORT_NEU, NORD_CHTOPO, OST_CHTOPO) |>
+  rename(Log_name = STANDORT_NEU) |>
+  mutate(NORD_CHTOPO = as.character(NORD_CHTOPO)) |>
+  mutate(OST_CHTOPO = as.character(OST_CHTOPO)) |>
+  # Coordinates are missing a period, so let's fix this
+  mutate(NORD_CHTOPO = sub("(\\d{2})(\\d+)", "\\1.\\2", NORD_CHTOPO)) |> # Insert a period after the first two characters
+  mutate(OST_CHTOPO = sub("(\\d)(\\d+)", "\\1.\\2", OST_CHTOPO)) |> # Insert a period after the first character
+  mutate(NORD_CHTOPO = as.numeric(NORD_CHTOPO)) |> # convert back into numeric
+  mutate(OST_CHTOPO = as.numeric(OST_CHTOPO))
 
+Summary <- Summary |>
+  full_join(meta, by = 'Log_name')
+```
 
 ```{r export, includ = F}
-write_csv(Summary, ("../data/Summary_T_2023_MJJAS.csv"))
+write_csv(Summary, ("../data/Analysis 2023/Summary_T_2023_MJJAS.csv"))
 ```
 
 
