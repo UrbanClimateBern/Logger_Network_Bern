@@ -1,0 +1,99 @@
+---
+title: "TNSD"
+author: "Moritz Burger & Noémie Wellinger"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include = F}
+library(caret)
+library(dplyr)
+library(ggplot2)
+#library(ggthemes)
+library(raster)
+```
+
+
+```{r get_data, include = F}
+TNSD <- read.csv("../data/Analysis 2023/Summary_T_2023_MJJAS.csv") |>
+  select(Log_name, Log_NR, Tropical_nights, Summer_days, NORD_CHTOPO, OST_CHTOPO)
+
+```
+
+```{r prepare_map, include = F}
+LUmap <- raster("../data/Mapping/LU_Raster_20.tif")
+
+# LUmap <- aggregate(LUmap, fact=2)
+# LUmap<- as.data.frame(LUmap, xy = TRUE)
+# LUmap<-filter(LUmap, LU_Raster_20==1)
+
+colorscheme2<-c("white","yellow", "orange", "red","darkred", "black")
+colorscheme<-c("darkgreen","green","beige", "grey", "black")
+colorscheme3<-c("#ffffb2", "#fed976", "#feb24c", "#fd8d3c", "#f03b20", "#bd0026")
+```
+
+
+#Plotting
+```{r map_TN, echo = F}
+TN_22 <-
+  ggplot()+
+  # geom_raster(LUmap) +
+  geom_point(data=TNSD, 
+             aes(x=OST_CHTOPO, y=NORD_CHTOPO, fill=Tropical_nights), 
+             colour="black", size=8, pch=21) +
+  labs(title="Berner Tropennächte 2023") +
+  scale_fill_stepsn(limits=c(-1,12), breaks=c(0,2,4,6,8,10,12), 
+                    labels=c("0","1 - 2","3 - 4","5 - 6","7 - 8","9 - 10","> 10"),
+                    colors = colorscheme2, name="Anzahl", guide="legend")+
+  theme_minimal() +
+  theme(panel.grid =element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position=c(0.1,0.185),
+        legend.background=element_rect(fill="white", color="black"),
+        legend.key.size=(unit(0.8, "cm")),
+        legend.text=element_text(size=14),
+        plot.title = element_text(hjust=0.5, margin=margin(b=-20,t=5) ,size=18))
+
+TN_22
+
+
+```
+
+```{r map_SD, echo = F}
+HD_22<-
+  ggplot()+
+  geom_raster(GA, mapping=aes(x=x, y=y), fill="darkolivegreen1", alpha=0.5) +
+  geom_raster(AC, mapping=aes(x=x, y=y), fill="darkolivegreen1", alpha=0.5) +
+  geom_raster(WA, mapping=aes(x=x, y=y), fill="lightblue", alpha=0.5) +
+  geom_raster(BUL, mapping=aes(x=x, y=y), fill="grey", alpha=0.5) +
+  geom_raster(SE, mapping=aes(x=x, y=y), fill="grey", alpha=0.5) +
+  geom_raster(FO, mapping=aes(x=x, y=y), fill="darkgreen", alpha=0.5) +
+  geom_point(data=data, 
+             aes(x=CH_X, y=CH_Y, fill=HD), 
+             colour="black", size=8, pch=21) + 
+  labs(title="Berner Hitzetage 2023")+
+  scale_fill_stepsn(limits=c(0,51), breaks=c(10,20,30,40,50), 
+                    labels=c("< 10","11 - 20","21 - 30","31 - 40","> 40"),
+                    colors = colorscheme, name="Anzahl", guide="legend")+
+  theme_minimal()+
+  theme(panel.grid =element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_blank(),
+        axis.title = element_blank(),
+        legend.position=c(0.105,0.15),
+        legend.background=element_rect(fill="white", color="black"),
+        legend.key.size=(unit(0.8, "cm")),
+        legend.text=element_text(size=14),
+        plot.title = element_text(hjust=0.5, margin=margin(b=-20,t=5) ,size=18))
+
+HD_22
+```
+
+
+```{r export, include = F}
+ggsave("TN_22.jpg", TN_22, path="../Figures/2023", width=10, height=9.5375)
+ggsave("HD_22.jpg", HD_22, path="../Figures/2023", width=10, height=9.5375)
+```
+

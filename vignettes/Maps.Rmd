@@ -1,0 +1,74 @@
+---
+title: "Maps"
+author: 'Moritz Burger & Noémie Wellinger'
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r libraries, include = F}
+library(caret)
+library(dplyr)
+library(ggmap)
+library(ggplot2)
+```
+
+```{r read_data, include = F}
+Summary <- read.csv("../data/Analysis 2023/Summary_T_2023_MJJAS.csv")
+head(Summary)
+```
+
+
+Doesn't work.. 
+```{r prepare_map}
+height<-max(Summary$Latitude) - min(Summary$Latitude)
+width<-max(Summary$Longitude) - min(Summary$Longitude)
+
+boarders<-c(bottom=min(Summary$Latitude) -0.1 * height,
+            top=max(Summary$Latitude) +0.1 * height,
+            left=min(Summary$Longitude) -0.1 * width,
+            right=max(Summary$Longitude) +0.1*width)
+
+map<-get_stamenmap(boarders, zoom=13, maptype="terrain")
+
+colorscheme=c("navyblue","blue","lightblue", "white", "gold", "red","red4")
+```
+
+```{r}
+Summer22_all<-
+  ggmap(map) +
+  geom_point(data=data, aes(y=Latitude, x=Longitude, fill=UHI_all),pch=21, size=4, color="black") +
+  labs(title="UHI Summer 2022 all", y="", x="") +
+  scale_fill_gradientn(colors=colorscheme,limits=c(-3,3), name="")+
+  theme(legend.text=element_text(size=10), plot.title=element_text(size=16, hjust=0.5), axis.text=element_blank(), axis.ticks=element_blank(),
+        legend.position="top", legend.key.width = unit(2, "cm"))
+```
+
+
+Summer22_all<-
+  ggmap(map) +
+  geom_point(data=data, aes(y=Latitude, x=Longitude, fill=UHI_all),pch=21, size=4, color="black") +
+  labs(title="UHI Summer 2022 all", y="", x="") +
+  scale_fill_gradientn(colors=colorscheme,limits=c(-3,3), name="")+
+  theme(legend.text=element_text(size=10), plot.title=element_text(size=16, hjust=0.5), axis.text=element_blank(), axis.ticks=element_blank(),
+        legend.position="top", legend.key.width = unit(2, "cm"))
+
+Summer22_night<-
+  ggmap(map) +
+  geom_point(data=data, aes(y=Latitude, x=Longitude, fill=UHI_night),pch=21, size=4, color="black") +
+  labs(title="UHI Summer 2022 night", y="", x="") +
+  scale_fill_gradientn(colors=colorscheme,limits=c(-3,3), name="")+
+  theme(legend.text=element_text(size=10), plot.title=element_text(size=16, hjust=0.5), axis.text=element_blank(), axis.ticks=element_blank(),
+        legend.position="top", legend.key.width = unit(2, "cm"))
+
+Summer22_day<-
+  ggmap(map) +
+  geom_point(data=data, aes(y=Latitude, x=Longitude, fill=UHI_day),pch=21, size=4, color="black") +
+  labs(title="UHI Summer 2022 day", y="", x="") +
+  scale_fill_gradientn(colors=colorscheme,limits=c(-3,3), name="")+
+  theme(legend.text=element_text(size=10), plot.title=element_text(size=16, hjust=0.5), axis.text=element_blank(), axis.ticks=element_blank(),
+        legend.position="top", legend.key.width = unit(2, "cm"))
+
+
+ggsave("Summer22_all.jpg", Summer22_all, path="D:/PhD_Moritz/Stadt Bern_Austausch/Berechnungen/Kennzahlen pro Sommer/2022", height=8.5, width=8)
+ggsave("Summer22_night.jpg", Summer22_night, path="D:/PhD_Moritz/Stadt Bern_Austausch/Berechnungen/Kennzahlen pro Sommer/2022", height=8.5, width=8)
+ggsave("Summer22_day.jpg", Summer22_day, path="D:/PhD_Moritz/Stadt Bern_Austausch/Berechnungen/Kennzahlen pro Sommer/2022", height=8.5, width=8)

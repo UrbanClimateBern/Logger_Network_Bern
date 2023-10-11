@@ -1,10 +1,37 @@
+---
+title: "Tagesverlauf"
+author: 'Noémie Wellinger'
+date: "`r Sys.Date()`"
+output: html_document
+---
 
+
+```{r}
 library(dplyr)
 library(tidyverse)
 library(lubridate)
 library(ggplot2)
+```
 
-setwd("D:/PhD_Moritz/Stadt Bern_Austausch/Berechnungen/Factsheets/2022")
+
+```{r get_data }
+# Get data from current year
+
+# Get diurnal cycles from previous years
+
+```
+
+```{r diurnal}
+# Calculate diurnal cycle for current year
+
+# Combine tables
+
+```
+
+
+```{r plot}
+# Make timeshift of 12 hours
+```
 
 data<-read.csv("Bupla_Zoll_22.csv", sep=";", header=T)
 
@@ -14,7 +41,7 @@ data<-mutate(data, UHI18 = Log_70_18-Log_99_18) %>%
   mutate(UHI21 = Log_70_21-Log_99_21) %>%
   mutate(UHI22 = Log_70_22-Log_99_22)
 
-head(data)
+head(data) 
 
 data$Zeit<-strptime(data$Zeit,"%d.%m.%Y %H:%M")
 data$Zeit<-as.POSIXct(data$Zeit)
@@ -39,12 +66,6 @@ write.table(Alle, "BuPla_Zeiten_normal.csv", sep=";")
 #################################################################################
 
 #Nun ausserhalb vom R im csv die Zeiten um 12h schieben. 12 Uhr ist jetzt 1
-
-list.files()
-
-data2<-read.csv("BuPla_Zeiten_12hg.csv", header=T, sep=";")
-
-head(data2)
 
 data2$Stunde_neu<-as.character(data2$Stunde_neu)
 
