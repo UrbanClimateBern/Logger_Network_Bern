@@ -218,12 +218,12 @@ write_csv(combined_RH, paste0("RH_all_loggers_", start,"-", end, ".csv"))
 ```{r}
 # 2. Export JJA and MJJAS (15. Mai-16.Sept) temperature tables for yearly report
 
-write_csv(combined_T, ("../data/Rawdata_T_2023_MJJAS.csv"))
+write_csv(combined_T, ("../data/Analysis 2023/Rawdata_T_2023_MJJAS.csv"))
 
 combined_T_JJA <- combined_T |>
   filter(month(Time) == c(6) | month(Time) == c(7) | month(Time) == c(8))
 
-write_csv(combined_T_JJA, ("../data/Rawdata_T_2023_JJA.csv"))
+write_csv(combined_T_JJA, ("../data/Analysis 2023/Rawdata_T_2023_JJA.csv"))
 
 ```
 
