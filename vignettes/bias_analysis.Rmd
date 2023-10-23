@@ -1,0 +1,149 @@
+---
+title: "Bias Analysis"
+author: "Nils Tinner"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+packages <- c("influxdbclient","ggplot2","tidyverse","lubridate","raster","dplyr")
+
+source("../R/load_packages.R")
+load_packages(packages)
+```
+```{r}
+REF <- read_delim("../data/order115622/order_115622_data.txt",delim = ";") |>
+  mutate(Time = as.POSIXct(as.character(time), format = "%Y%m%d%H%M")+hours(2),
+         hour = hour(Time),
+         month = month(Time),
+         day = day(Time),
+         year = year(Time))
+
+```
+
+```{r}
+NEW <- read_csv("../data/Analysis 2023/Rawdata_T_2023_MJJAS.csv")
+NEW_2<-NEW |>
+  dplyr::select(`Zollikofen 2m`,Time)
+
+NEW_3<-NEW |>
+  dplyr::select(`Zollikofen 3m`,Time)
+
+
+```
+
+```{r}
+OLD <- read_csv("../data/MF_Doppel_2023.csv") |>
+  mutate(Time = as.POSIXct(Sommerzeit, format = "%m/%d/%y %H:%M"))
+OLD_2 <- OLD |>
+  dplyr::select(Log_98,Time)
+
+OLD_3 <- OLD |>
+  dplyr::select(Log_99,Time)
+
+```
+
+
+
+```{r}
+NEW<-inner_join(NEW_2,NEW_3,by = "Time")
+OLD<-inner_join(OLD_2,OLD_3,by = "Time")
+ALL<-inner_join(NEW,OLD,by = "Time")
+ALL <- inner_join(ALL,REF)
+
+```
+
+2 meters comparison
+```{r}
+ALL_higher20 <- ALL |> dplyr::filter(`Zollikofen 2m`>20)
+
+ggplot(ALL_higher20, aes(x = factor(hour), y = `Zollikofen 2m`-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Over 20C, 2 meter, NEW")+
+  theme_minimal()
+
+ALL_lower20 <- ALL |> dplyr::filter(`Zollikofen 2m`<20)
+
+ggplot(ALL_lower20, aes(x = factor(hour), y = `Zollikofen 2m`-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Under 20C, 2 meter, NEW")+
+  theme_minimal()
+
+```
+3 meter comparison
+```{r}
+ALL_higher20 <- ALL |> dplyr::filter(`Zollikofen 3m`>20)
+
+ggplot(ALL_higher20, aes(x = factor(hour), y = `Zollikofen 3m`-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Over 20C, 3 meter, NEW")+
+  theme_minimal()
+
+ALL_lower20 <- ALL |> dplyr::filter(`Zollikofen 3m`<20)
+
+ggplot(ALL_lower20, aes(x = factor(hour), y = `Zollikofen 3m`-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Under 20C, 3 meter, NEW")+
+  theme_minimal()
+
+
+```
+```{r}
+ALL_higher20 <- ALL |> dplyr::filter(Log_98>20)
+
+ggplot(ALL_higher20, aes(x = factor(hour), y = Log_98-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Over 20C, 2 meter, OLD")+
+  theme_minimal()
+
+ALL_lower20 <- ALL |> dplyr::filter(Log_98<20)
+
+ggplot(ALL_lower20, aes(x = factor(hour), y = Log_98-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Under 20C, 2 meter, OLD")+
+  theme_minimal()
+
+
+```
+
+
+
+```{r}
+ALL_higher20 <- ALL |> dplyr::filter(Log_99>20)
+
+ggplot(ALL_higher20, aes(x = factor(hour), y = Log_99-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Over 20C, 3 meter, OLD")+
+  theme_minimal()
+
+ALL_lower20 <- ALL |> dplyr::filter(Log_99<20)
+
+ggplot(ALL_lower20, aes(x = factor(hour), y = Log_99-tre200s0)) +
+  geom_boxplot() +
+   labs(x = "Hour of the Day", y = "Temperature Difference") +
+  scale_x_discrete(labels = sprintf("%02d", seq(0, 23))) +
+  ylim(c(-3,4.5))+
+  labs(title = "Under 20C, 3 meter, OLD")+
+  theme_minimal()
+```
