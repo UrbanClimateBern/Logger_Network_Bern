@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 output: html_document
 ---
 
-This Rmd script calculates important Urban Climate variables for each logger. These are first calculated for each day of the measure, and finally summarized (averages) in a big summary table.
+This Rmd script calculates important Urban Climate indicators for each logger. These are first calculated for each day of the measurement period, and finally summarized (averages) in a big summary table.
 Note that the time of day over they are calculated differs: whole day (00-24), daytime (6-22) and night (either 22-6 or 21-7).
 
 ** NOT SURE HOW EXACTLY WE SHOULD PROCEED FOR THE VALID DAYS. THIS IS NOÉMIE'S SUGGESTION: **
@@ -20,8 +20,19 @@ library(dplyr)
 library(lubridate)
 ```
 
+```{r}
+# select time period
+# MJJAS for 15.5. - 15.9.
+# JJA for 1.6. - 31.8.
+
+time_range <- "MJJAS"
+#time_range <- "JJA"
+
+```
+
+
 ```{r read, include = F}
-data<-read_csv("../data/Analysis 2023/Rawdata_T_2023_MJJAS.csv")
+data<-read_csv(paste0("../data/Analysis 2023/Rawdata_T_2023_", time_range, ".csv"))
 
 # shift the hours, so that the night is not cut in half
 data <- data |>
@@ -198,13 +209,15 @@ VHot_days <- Tmax |>
   select(-year, -month)
 ```
 
-# Valid days (DOESN'T WORK YET)
+# Valid days
 ```{r valid_days, include = F}
 # TODO
 # valid days
 # question also valid nights, and daytime ?
 # when is a day valid? does it have to be completely without NA or not more than 20% NA or so?
-
+# or also look at each hour
+# gap filling with new sensors
+# valid hours = 4 measurements or more per hour
 
 # Set threshold for maximum amount of NA data that is allowed per day (e.g. 0.2 = 20%)
 threshold <- 0.2
@@ -269,12 +282,14 @@ Summer_days <- as.data.frame(t(head(Summer_days))) |> rename(Summer_days = V1) |
 Hot_days <- as.data.frame(t(head(Hot_days))) |> rename(Hot_days = V1) |> rownames_to_column(var = "Log_name")
 VHot_days <- as.data.frame(t(head(VHot_days))) |> rename(VHot_days = V1) |> rownames_to_column(var = "Log_name")
 
+valid_days <- as.data.frame(t(head(total_valid_days))) |> rename(total_valid_days = V1) |> rownames_to_column(var = "Log_name")
+
 # Keep in mind this overwrites the original tables, so if you run this chunk again, it transposes back and probably causes an error
 ```
 
 ```{r join, include=F}
 # Join the transposed tables
-indicators <- list(Tmean_avg, Tmax_avg, Tmean_night_avg, Tmin_night_avg, Tmean_day_avg, UHI_avg, UHI_day_avg, UHI_night_avg, Tropical_nights, Gfroerli_nights, Summer_days, Hot_days, VHot_days)
+indicators <- list(Tmean_avg, Tmax_avg, Tmean_night_avg, Tmin_night_avg, Tmean_day_avg, UHI_avg, UHI_day_avg, UHI_night_avg, Tropical_nights, Gfroerli_nights, Summer_days, Hot_days, VHot_days, valid_days)
 
 Summary <- plyr::join_all(indicators, by = "Log_name", type = "full")
 ```
@@ -298,7 +313,7 @@ Summary <- Summary |>
 ```
 
 ```{r export, includ = F}
-write_csv(Summary, ("../data/Analysis 2023/Summary_T_2023_MJJAS.csv"))
+write_csv(Summary, (paste0("../data/Analysis 2023/Summary_T_2023_", time_range, ".csv")))
 ```
 
 
