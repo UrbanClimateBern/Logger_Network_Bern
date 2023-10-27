@@ -10,6 +10,16 @@ The time range of the data that should be downloaded can be set manually. Metada
 The DATA WRANGLING section sorts the data into two big tables (temperature and relative humidity) with 10 minute timesteps and a separate column for each logger. You can just run the first part of the data wrangling, to only include the current loggers, or, OPTIONALLY, you can add the data from the replaced loggers (according to the old metadata sheet) as well. The script pay attention to the installation and de-installation date of the loggers, so it will only use the data from the exact time range during which the loggers were measuring at a specific station.
 Finally, missing values are plotted and the tables can be exported.
 
+*Variables to adjust depending on the data you want to get*
+token (possibly)
+client (possibly)
+start
+stop
+meta, meta_old
+
+export paths in the last section (adapt year)
+
+
 
 ```{r libraries, include = F}
 library(influxdbclient)
@@ -207,6 +217,7 @@ ggplot(data = combined_T, aes(x=Time)) +
 # EXPORT
 ```{r}
 # 1. Export any time range
+
 
 # set your local directory
 setwd("...")
