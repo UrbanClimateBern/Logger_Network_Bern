@@ -22,12 +22,12 @@ library(lubridate)
 
 ```{r}
 # select time period
-# MJJAS for 15.5. - 15.9.
-# JJA for 1.6. - 31.8.
+#   MJJAS for 15.5. - 15.9.
+#   JJA for 1.6. - 31.8.
 
-time_range <- "MJJAS"
-#time_range <- "JJA"
-
+#time_range <- "MJJAS"
+time_range <- "JJA"
+ndays <- 91
 ```
 
 
@@ -36,6 +36,7 @@ data<-read_csv(paste0("../data/Analysis 2023/Rawdata_T_2023_", time_range, ".csv
 
 # shift the hours, so that the night is not cut in half
 data <- data |>
+  mutate(Time = as.POSIXct(Time, format = "%Y-%m-%d %H:%M", tz = "Europe/Zurich")) |>
   mutate(Timeshift = Time - dhours(7)) #07 ist das neue 00
 ```
 
@@ -55,23 +56,20 @@ Tmin_night[sapply(Tmin_night, is.infinite)] <- NA
 Tmin_night_avg <- Tmin_night |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -day, -year)
+  dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 Tropical_nights <- Tmin_night |>
-  select(-Time, -month, -day) |>
+  dplyr::select(-Time, -month, -day) |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ sum(. >= 20 & . <= 30, na.rm = TRUE)) |>
-  select(-year, -month)
+  dplyr::select(-year, -month)
 
 Gfroerli_nights <- Tmin_night |>
-  select(-Time, -month, -day) |>
+  dplyr::select(-Time, -month, -day) |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ sum(. <=10 & . >= 0, na.rm = TRUE)) |>
-  select(-year, -month)
-
+  dplyr::select(-year, -month)
 ```
-
-
 
 
 Logs<-colnames(Tmin_night[3:82])
@@ -95,19 +93,19 @@ Tmean_night[sapply(Tmean_night, is.nan)] <- NA
 Tmean_night_avg <- Tmean_night |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -day, -year)
+  dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 # Urban heat island
 # Reference: Zollikofen Referenz 3m
 UHI_night <- Tmean_night |>
   mutate_all(~ .-`Zollikofen 3m`) |>
-  select(-month, -day)
+  dplyr::select(-month, -day)
 UHI_night[sapply(UHI_night, is.nan)] <- NA
 
 UHI_night_avg <- UHI_night |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -year) |>
+  dplyr::select(-Time, -Timeshift, -month, -year) |>
   head(1) #select the first row, since there is a second row with NaN
 
 ```
@@ -130,19 +128,19 @@ Tmean_day[sapply(Tmean_day, is.nan)] <- NA
 Tmean_day_avg <- Tmean_day |>
   group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -day, -year)
+  dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 # Urban heat island
 # Reference: Zollikofen Referenz 3m
 UHI_day <- Tmean_day |>
   mutate_all(~ .-`Zollikofen 3m`) |>
-  select(-month, -day)
+  dplyr::select(-month, -day)
 UHI_day[sapply(UHI_day, is.nan)] <- NA
 
 UHI_day_avg <- UHI_day |>
   group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -year) |>
+  dplyr::select(-Time, -Timeshift, -month, -year) |>
   head(1) #select the first row, since there is a second row with NaN
 ```
 
@@ -159,7 +157,7 @@ Tmean[sapply(Tmean, is.nan)] <- NA
 Tmean_avg <- Tmean |>
   group_by(year = year(Timeshift)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -day, -year)
+  dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 # Overall max temperature
 Tmax <- data |>
@@ -172,41 +170,41 @@ Tmax[sapply(Tmax, is.nan)] <- NA
 Tmax_avg <- Tmax |>
   group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -day, -year)
+  dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 # Urban heat island
 # Reference: Zollikofen Referenz 3m
 UHI <- Tmean |>
   mutate_all(~ .-`Zollikofen 3m`) |>
-  select(-month, -day)
+  dplyr::select(-month, -day)
 UHI[sapply(UHI, is.nan)] <- NA
 
 UHI_avg <- UHI |>
   group_by(year = year(Time)) |>
   summarise_all(~ mean(., na.rm = TRUE)) |>
-  select(-Time, -Timeshift, -month, -year) |>
+  dplyr::select(-Time, -Timeshift, -month, -year) |>
   head(1) #select the first row, since there is a second row with NaN
 
 # Summer days
 Summer_days <- Tmax |>
-  select(-Timeshift, -month, -day) |>
+  dplyr::select(-Timeshift, -month, -day) |>
   group_by(year = year(Time)) |>
   summarise_all(~ sum(. >= 25 & . <= 50, na.rm = TRUE)) |>
-  select(-year, -month)
+  dplyr::select(-year, -month)
 
 # Hot days
 Hot_days <- Tmax |>
-  select(-Timeshift, -month, -day) |>
+  dplyr::select(-Timeshift, -month, -day) |>
   group_by(year = year(Time)) |>
   summarise_all(~ sum(. >= 30 & . <= 50, na.rm = TRUE)) |>
-  select(-year, -month)
+  dplyr::select(-year, -month)
 
 # Very Hot days
 VHot_days <- Tmax |>
-  select(-Timeshift, -month, -day) |>
+  dplyr::select(-Timeshift, -month, -day) |>
   group_by(year = year(Time)) |>
   summarise_all(~ sum(. >= 35 & . <= 50, na.rm = TRUE)) |>
-  select(-year, -month)
+  dplyr::select(-year, -month)
 ```
 
 # Valid days
@@ -226,7 +224,7 @@ threshold <- 0.2
 NA_per_day <- data |>
   group_by(date = date(Time)) |>
   summarize_all(~ sum(is.na(.))) |>
-  select(-Time)
+  dplyr::select(-Time)
 
 # Flag the valid (1) and invalid (0) days
 valid_days <- NA_per_day |>
@@ -234,11 +232,11 @@ valid_days <- NA_per_day |>
 
 # Calculate the total number of days and valid days
 total_valid_days <- valid_days |>
-  select(-date) |>
+  dplyr::select(-date) |>
   summarise_all(~ sum(., na.rm = TRUE)) 
 ```
 
-# OPTIONAL !
+# OPTIONAL ! ** Doesn't work yet **
 Set the cells of an entire day to NA if it was an invalid day
 ```{r}
 # Identify rows to set to NA
@@ -285,6 +283,10 @@ VHot_days <- as.data.frame(t(head(VHot_days))) |> rename(VHot_days = V1) |> rown
 valid_days <- as.data.frame(t(head(total_valid_days))) |> rename(total_valid_days = V1) |> rownames_to_column(var = "Log_name")
 
 # Keep in mind this overwrites the original tables, so if you run this chunk again, it transposes back and probably causes an error
+
+# Calculate also the percentage of valid days
+valid_days <- valid_days |>
+  mutate(valid_days_percent = total_valid_days/ndays)
 ```
 
 ```{r join, include=F}
@@ -294,11 +296,12 @@ indicators <- list(Tmean_avg, Tmax_avg, Tmean_night_avg, Tmin_night_avg, Tmean_d
 Summary <- plyr::join_all(indicators, by = "Log_name", type = "full")
 ```
 
+
 Add the coordinates from the metadata and format them correctly. Important for mapping later on.
 ```{r coordinates, include = F}
 # Add Longitude and Latitude values
 meta <- read_csv2("../data/metadata_network_2023.csv") |>
-  select(Log_NR, STANDORT_NEU, NORD_CHTOPO, OST_CHTOPO) |>
+  dplyr::select(Log_NR, STANDORT_NEU, NORD_CHTOPO, OST_CHTOPO) |>
   rename(Log_name = STANDORT_NEU) |>
   mutate(NORD_CHTOPO = as.character(NORD_CHTOPO)) |>
   mutate(OST_CHTOPO = as.character(OST_CHTOPO)) |>
@@ -309,7 +312,15 @@ meta <- read_csv2("../data/metadata_network_2023.csv") |>
   mutate(OST_CHTOPO = as.numeric(OST_CHTOPO))
 
 Summary <- Summary |>
-  full_join(meta, by = 'Log_name')
+  full_join(meta, by = 'Log_name') |>
+  drop_na()
+```
+
+```{r}
+# Calculate mean over all stations
+
+Summary_all <- Summary |>
+  summarise_all(~ mean(., na.rm = TRUE)) 
 ```
 
 ```{r export, includ = F}

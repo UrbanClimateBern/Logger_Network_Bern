@@ -13,24 +13,19 @@ library(ggplot2)
 ```
 
 ```{r read_data, include = F}
-Summary <- read.csv("../data/Analysis 2023/Summary_T_2023_MJJAS.csv")
+Summary <- read.csv("../data/Analysis 2023/Summary_T_2023_JJA.csv")
 head(Summary)
+
+data<-read_csv(paste0("../data/Analysis 2023/Rawdata_T_2023_", time_range, ".csv"))
+
+# shift the hours, so that the night is not cut in half
+data <- data |>
+  mutate(Time = as.POSIXct(Time, format = "%Y-%m-%d %H:%M", tz = "Europe/Zurich"))
 ```
 
+ 
+```{r preprocess, include=F}
 
-Doesn't work.. 
-```{r prepare_map}
-height<-max(Summary$Latitude) - min(Summary$Latitude)
-width<-max(Summary$Longitude) - min(Summary$Longitude)
-
-boarders<-c(bottom=min(Summary$Latitude) -0.1 * height,
-            top=max(Summary$Latitude) +0.1 * height,
-            left=min(Summary$Longitude) -0.1 * width,
-            right=max(Summary$Longitude) +0.1*width)
-
-map<-get_stamenmap(boarders, zoom=13, maptype="terrain")
-
-colorscheme=c("navyblue","blue","lightblue", "white", "gold", "red","red4")
 ```
 
 ```{r}

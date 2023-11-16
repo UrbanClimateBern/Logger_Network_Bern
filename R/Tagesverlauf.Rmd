@@ -19,12 +19,13 @@ library(ggplot2)
 new_BuPla_Zoll <- read_csv("../data/Analysis 2023/Rawdata_T_2023_JJA.csv")
 new_BuPla_Zoll <- new_BuPla_Zoll |> 
   dplyr::select(Time, Bundesplatz, `Zollikofen 3m`) |>
-  mutate(Time = as.POSIXct(Time, format = "%Y-%m-%d %H:%M")) |>
+  mutate(Time = as.POSIXct(Time, format = "%Y-%m-%d %H:%M", tz = "Europe/Zurich")) |>
   mutate(month = month(Time), day = day(Time), hour = hour(Time), minute = minute(Time)) 
 
 # Get diurnal cycles from previous years
 BuPla_Zoll <- read.csv("../data/Analysis 2022/UHI_BuPla_Zoll.csv", sep = ",", dec = ".") |>
-  mutate(Time = as.POSIXct(Time, format = "%Y-%m-%dT%H:%M:%OS")) |>
+  mutate(Time = as.POSIXct(Time, format = "%Y-%m-%dT%H:%M:%OS", tz = "GMT")) |>
+  mutate(Time = as.POSIXct(Time, tz = "Europe/Zurich")) |>
   mutate(month = month(Time), day = day(Time), hour = hour(Time), minute = minute(Time))
 
 # Join the two together
@@ -33,7 +34,7 @@ new_BuPla_Zoll <- new_BuPla_Zoll |>
   rename(Time = Time.x,
          Log_70_23 = Bundesplatz,
          Log_99_23 = `Zollikofen 3m`) |>
-  select(-month, -day, -hour, -minute, -Time.y)
+  dplyr::select(-month, -day, -hour, -minute, -Time.y)
 
 # Calculate UHI for current year
 new_BuPla_Zoll <- new_BuPla_Zoll |>
@@ -43,11 +44,31 @@ new_BuPla_Zoll <- new_BuPla_Zoll |>
 write_csv(new_BuPla_Zoll, ("../data/Analysis 2023/UHI_BuPla_Zoll.csv"))
 ```
 
+```{r}
+BuPla_Zoll <- read.csv("../data/Analysis 2022/UHI_BuPla_Zoll.csv", sep = ",", dec = ".") |>
+  mutate(Time = as.POSIXct(Time, format = "%Y-%m-%dT%H:%M:%OS", tz = "GMT")) |>
+  mutate(Time = as.POSIXct(Time, tz = "Europe/Zurich")) 
+
+write_csv(BuPla_Zoll, ("../data/Analysis 2022/UHI_BuPla_Zoll.csv"))
+
+
+BuPla_Zoll <- read.csv("../data//Analysis 2022/BuPla_Zoll_22.csv", sep = ";", dec = ".") |>
+  mutate(Time = as.POSIXct(Zeit, format = "%d.%m.%Y %H:%M", tz = "Europe/Zurich")) |>
+  mutate(UHI_22 = Log_70_22 - Log_99_22,
+         UHI_21 = Log_70_21 - Log_99_21,
+         UHI_20 = Log_70_20 - Log_99_20,
+         UHI_19 = Log_70_19 - Log_99_19,
+         UHI_18 = Log_70_18 - Log_99_18) |>
+  dplyr::select(-Zeit)
+  
+```
+
 
 ```{r diurnal, include = F}
 # Calculate diurnal cycles
 BuPla_Zoll_diurnal <- new_BuPla_Zoll |>
   drop_na(Time) |>
+  #filter(month(Time) == 7) |>
   dplyr::select(Time, UHI_23, UHI_22, UHI_21, UHI_20, UHI_19, UHI_18) |>
   dplyr::group_by(hour = hour(Time)) |>
   dplyr::summarize(UHI_23 = mean(UHI_23, na.rm=T),
@@ -94,7 +115,7 @@ Bupla <-
        title = "Städtischer Wärmeinsel-Effekt",
        subtitle = "Temperaturdifferenz Bundesplatz - Zollikofen")+
   scale_colour_manual(values=c("grey", "blue", "gold", "red", "forestgreen", "black"), breaks=c("2018", "2019", "2020", "2021", "2022", "2023"), name="") +
-  theme(legend.position=c(0.50,0.09), legend.direction = "horizontal", legend.background=element_rect(fill="white", color="black"))
+  theme(legend.position=c(0.50,0.07), legend.direction = "horizontal", legend.background=element_rect(fill="white", color="black"))
 
 
 Bupla
