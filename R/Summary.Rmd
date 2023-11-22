@@ -37,7 +37,8 @@ data<-read_csv(paste0("../data/Analysis 2023/Rawdata_T_2023_", time_range, ".csv
 # shift the hours, so that the night is not cut in half
 data <- data |>
   mutate(Time = as.POSIXct(Time, format = "%Y-%m-%d %H:%M", tz = "Europe/Zurich")) |>
-  mutate(Timeshift = Time - dhours(7)) #07 ist das neue 00
+  mutate(Timeshift = Time - dhours(7)) |> #07 is the new 00
+  select(-Log_99, everything(), Log_99)
 ```
 
 # Indicators using Nighttime Temperatures (21:00 - 07:00):
@@ -96,9 +97,9 @@ Tmean_night_avg <- Tmean_night |>
   dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 # Urban heat island
-# Reference: Zollikofen Referenz 3m
+# Reference: Zollikofen Referenz 3m (Log_99)
 UHI_night <- Tmean_night |>
-  mutate_all(~ .-`Zollikofen 3m`) |>
+  mutate_all(~ .-Log_99) |>
   dplyr::select(-month, -day)
 UHI_night[sapply(UHI_night, is.nan)] <- NA
 
@@ -131,9 +132,9 @@ Tmean_day_avg <- Tmean_day |>
   dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 # Urban heat island
-# Reference: Zollikofen Referenz 3m
+# Reference: Zollikofen Referenz 3m (Log_99)
 UHI_day <- Tmean_day |>
-  mutate_all(~ .-`Zollikofen 3m`) |>
+  mutate_all(~ .-Log_99) |>
   dplyr::select(-month, -day)
 UHI_day[sapply(UHI_day, is.nan)] <- NA
 
@@ -173,9 +174,9 @@ Tmax_avg <- Tmax |>
   dplyr::select(-Time, -Timeshift, -month, -day, -year)
 
 # Urban heat island
-# Reference: Zollikofen Referenz 3m
+# Reference: Zollikofen Referenz 3m (Log_99)
 UHI <- Tmean |>
-  mutate_all(~ .-`Zollikofen 3m`) |>
+  mutate_all(~ .-Log_99) |>
   dplyr::select(-month, -day)
 UHI[sapply(UHI, is.nan)] <- NA
 
@@ -302,7 +303,7 @@ Add the coordinates from the metadata and format them correctly. Important for m
 # Add Longitude and Latitude values
 meta <- read_csv2("../data/metadata_network_2023.csv") |>
   dplyr::select(Log_NR, STANDORT_NEU, NORD_CHTOPO, OST_CHTOPO) |>
-  rename(Log_name = STANDORT_NEU) |>
+  mutate(Log_name = paste0("Log_", Log_NR)) |>
   mutate(NORD_CHTOPO = as.character(NORD_CHTOPO)) |>
   mutate(OST_CHTOPO = as.character(OST_CHTOPO)) |>
   # Coordinates are missing a period, so let's fix this
